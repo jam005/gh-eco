@@ -18,11 +18,23 @@ var (
 )
 
 func BuildGraphDisplay(weeklyContributions []models.WeeklyContribution) string {
-	// prep the finished matrix
+	if len(weeklyContributions) == 0 {
+		return ""
+	}
+
+	// size rows by the longest week so ragged weeks can't index out of range;
+	// unfilled cells stay "" and render as blanks
+	maxDays := 0
+	for _, week := range weeklyContributions {
+		maxDays = utils.MaxInt(maxDays, len(week.ContributionDays))
+	}
+	if maxDays == 0 {
+		return ""
+	}
 
 	result := make([][]string, len(weeklyContributions))
 	for i := range result {
-		result[i] = make([]string, len(weeklyContributions[0].ContributionDays))
+		result[i] = make([]string, maxDays)
 	}
 
 	for i, weeklyContribution := range weeklyContributions {
@@ -31,14 +43,13 @@ func BuildGraphDisplay(weeklyContributions []models.WeeklyContribution) string {
 		}
 	}
 
-	result = transposeSlice(result)
-
-	foo := generateContributionGraph(result)
-
-	return foo
+	return generateContributionGraph(transposeSlice(result))
 }
 
 func transposeSlice(slice [][]string) [][]string {
+	if len(slice) == 0 {
+		return slice
+	}
 	xLen := len(slice[0])
 	yLen := len(slice)
 
