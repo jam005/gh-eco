@@ -18,20 +18,28 @@ func TruncateText(str string, max int) string {
 	}
 
 	lastSpaceIdx := -1
-	len := 0
+	count := 0
+	hardCutIdx := -1 // byte index of the first rune past max; -1 until exceeded
 	for i, r := range str {
 		if unicode.IsSpace(r) {
+			if hardCutIdx != -1 {
+				// already past max with no earlier space: cut at this one
+				return str[:i] + "..."
+			}
 			lastSpaceIdx = i
 		}
-		len++
-		if len > max {
+		count++
+		if count > max && hardCutIdx == -1 {
 			if lastSpaceIdx != -1 {
 				return str[:lastSpaceIdx] + "..."
 			}
-			// string is longer than max but has no spaces
+			hardCutIdx = i
 		}
 	}
-	// string is shorter than max
+	if hardCutIdx != -1 {
+		// longer than max with no spaces at all: hard cut at max runes
+		return str[:hardCutIdx] + "..."
+	}
 	return str
 }
 
