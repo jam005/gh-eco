@@ -53,6 +53,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.buildDisplay()
 	case commands.StarStarrableResponse:
+		if msg.Err != nil {
+			cmds = append(cmds, func() tea.Msg {
+				return commands.SetMessage{Content: "star failed 😕", SecondsDisplayed: 2}
+			})
+			break
+		}
 		for i, r := range m.ctx.User.PinnedRepos {
 			if r.Id == msg.Starrable.Id {
 				m.ctx.User.PinnedRepos[i].ViewerHasStarred = msg.Starrable.ViewerHasStarred
@@ -64,6 +70,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.buildDisplay()
 
 	case commands.RemoveStarStarrableResponse:
+		if msg.Err != nil {
+			cmds = append(cmds, func() tea.Msg {
+				return commands.SetMessage{Content: "unstar failed 😕", SecondsDisplayed: 2}
+			})
+			break
+		}
 		for i, r := range m.ctx.User.PinnedRepos {
 			if r.Id == msg.Starrable.Id {
 				m.ctx.User.PinnedRepos[i].ViewerHasStarred = msg.Starrable.ViewerHasStarred

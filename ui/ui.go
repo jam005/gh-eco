@@ -162,9 +162,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case commands.GetReadmeResponse:
-		m.ctx.CurrentView = context.ReadmeView
-		m.onLayoutChange()
-		layoutChangeCmd = m.notifyLayoutChange()
+		if msg.Err != nil {
+			messageCmd = m.message.TriggerMessage("couldn't load readme 😕", 2)
+			cmds = append(cmds, messageCmd)
+		} else {
+			m.ctx.CurrentView = context.ReadmeView
+			m.onLayoutChange()
+			layoutChangeCmd = m.notifyLayoutChange()
+		}
 
 	case commands.GetUserResponse:
 		m.resetWidgets()
