@@ -162,6 +162,15 @@ func (m Model) buildUserDisplay() string {
 }
 
 func (m *Model) buildDisplay() {
+	// buildDisplay is the only path that appends to FocusableWidgets
+	// (directly via buildUserDisplay and via repo.BuildPinnedRepoDisplay),
+	// so it owns resetting the list to keep rebuilds idempotent.
+	m.ctx.FocusableWidgets = []context.FocusableWidget{
+		{
+			Descriptor: "NoFocus",
+		},
+	}
+
 	physicalWidth, _, _ := term.GetSize(int(os.Stdout.Fd()))
 
 	var b strings.Builder
