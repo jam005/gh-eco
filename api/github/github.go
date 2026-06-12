@@ -21,29 +21,39 @@ const GH_ECO_REPO_ID string = "R_kgDOHVAImQ"
 
 var (
 	clientInstance *ghv4.Client
+	clientErr      error
 	once           sync.Once
 )
 
 // GetClient initializes a GitHub GraphQL client instance with a token obtained from GitHub CLI.
-func GetClient() *ghv4.Client {
+func GetClient() (*ghv4.Client, error) {
 	once.Do(func() {
 		output, _, err := gh.Exec("auth", "token")
 		if err != nil {
-			fmt.Println("Unable to retrieve access token")
+			clientErr = fmt.Errorf("unable to retrieve gh auth token: %w", err)
+			return
 		}
 
 		token := strings.TrimSpace(output.String())
+		if token == "" {
+			clientErr = fmt.Errorf("empty gh auth token")
+			return
+		}
+
 		src := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 		httpClient := oauth2.NewClient(context.Background(), src)
 		clientInstance = ghv4.NewClient(httpClient)
 	})
 
-	return clientInstance
+	return clientInstance, clientErr
 }
 
 func GetUser(login string) tea.Cmd {
 	return func() tea.Msg {
-		client := GetClient()
+		client, err := GetClient()
+		if err != nil {
+			return commands.GetUserResponse{Err: err}
+		}
 
 		var query queries.GetUserQuery
 
@@ -52,9 +62,9 @@ func GetUser(login string) tea.Cmd {
 			"first": ghv4.Int(6),
 		}
 
-		err := client.Query(context.Background(), &query, variables)
+		err = client.Query(context.Background(), &query, variables)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Println(err)
 			return commands.GetUserResponse{Err: err}
 		}
 
@@ -64,7 +74,10 @@ func GetUser(login string) tea.Cmd {
 
 func GetReadme(name string, owner string) tea.Cmd {
 	return func() tea.Msg {
-		client := GetClient()
+		client, err := GetClient()
+		if err != nil {
+			return commands.GetReadmeResponse{Err: err}
+		}
 
 		var query queries.GetReadmeQuery
 
@@ -74,7 +87,7 @@ func GetReadme(name string, owner string) tea.Cmd {
 			"expression": ghv4.String("HEAD:README.md"),
 		}
 
-		err := client.Query(context.Background(), &query, variables)
+		err = client.Query(context.Background(), &query, variables)
 		if err != nil {
 			log.Println(err)
 			return commands.GetReadmeResponse{Err: err}
@@ -86,7 +99,10 @@ func GetReadme(name string, owner string) tea.Cmd {
 
 func StarStarrable(starrableId string) tea.Cmd {
 	return func() tea.Msg {
-		client := GetClient()
+		client, err := GetClient()
+		if err != nil {
+			return commands.StarStarrableResponse{Err: err}
+		}
 
 		var mutation mutations.AddStarMutation
 
@@ -94,7 +110,7 @@ func StarStarrable(starrableId string) tea.Cmd {
 			StarrableID: ghv4.ID(starrableId),
 		}
 
-		err := client.Mutate(context.Background(), &mutation, input, nil)
+		err = client.Mutate(context.Background(), &mutation, input, nil)
 		if err != nil {
 			log.Println(err)
 			return commands.StarStarrableResponse{Err: err}
@@ -106,7 +122,10 @@ func StarStarrable(starrableId string) tea.Cmd {
 
 func RemoveStarStarrable(starrableId string) tea.Cmd {
 	return func() tea.Msg {
-		client := GetClient()
+		client, err := GetClient()
+		if err != nil {
+			return commands.RemoveStarStarrableResponse{Err: err}
+		}
 
 		var mutation mutations.RemoveStarMutation
 
@@ -114,7 +133,7 @@ func RemoveStarStarrable(starrableId string) tea.Cmd {
 			StarrableID: ghv4.ID(starrableId),
 		}
 
-		err := client.Mutate(context.Background(), &mutation, input, nil)
+		err = client.Mutate(context.Background(), &mutation, input, nil)
 		if err != nil {
 			log.Println(err)
 			return commands.RemoveStarStarrableResponse{Err: err}
