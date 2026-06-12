@@ -59,7 +59,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case context.InsertMode:
 			cmds = append(cmds, textinput.Blink)
 
-			if key.Matches(msg, m.keys.Search) {
+			if key.Matches(msg, m.keys.Search) && strings.TrimSpace(m.textInput.Value()) != "" {
 				m.ctx.Mode = context.NormalMode
 				m.textInput.SetCursorMode(textinput.CursorHide)
 				getUserCmd = github.GetUser(m.textInput.Value())
