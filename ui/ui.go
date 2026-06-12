@@ -157,7 +157,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if key.Matches(msg, m.keys.StarGhEco) {
 				starRepoCmd = github.StarStarrable(github.GH_ECO_REPO_ID)
 				messageCmd = m.message.TriggerMessage("tysm 🥹", 2)
-				m.ctx.LastView = m.ctx.CurrentView
 				cmds = append(cmds, messageCmd, starRepoCmd)
 			}
 		}

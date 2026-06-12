@@ -34,6 +34,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case commands.SetMessage:
+		if m.ctx.CurrentView != context.MessageView {
+			m.ctx.LastView = m.ctx.CurrentView
+		}
 		m.ctx.CurrentView = context.MessageView
 		m.Content = msg.Content
 		m.timer = timer.NewWithInterval(time.Second*time.Duration(msg.SecondsDisplayed), time.Second)
