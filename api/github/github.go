@@ -2,16 +2,20 @@ package github
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
 	"sync"
 
 	tea "github.com/charmbracelet/bubbletea"
 	gh "github.com/cli/go-gh/v2"
+	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/jrnxf/gh-eco/api/github/mutations"
 	"github.com/jrnxf/gh-eco/api/github/queries"
 	"github.com/jrnxf/gh-eco/ui/commands"
+	"github.com/jrnxf/gh-eco/ui/models"
 	"github.com/jrnxf/gh-eco/utils"
 	ghv4 "github.com/shurcooL/githubv4"
 	"golang.org/x/oauth2"
@@ -74,27 +78,44 @@ func GetUser(login string) tea.Cmd {
 
 func GetReadme(name string, owner string) tea.Cmd {
 	return func() tea.Msg {
-		client, err := GetClient()
+		client, err := api.DefaultRESTClient()
 		if err != nil {
 			return commands.GetReadmeResponse{Err: err}
 		}
 
-		var query queries.GetReadmeQuery
-
-		variables := map[string]interface{}{
-			"name":       ghv4.String(name),
-			"owner":      ghv4.String(owner),
-			"expression": ghv4.String("HEAD:README.md"),
+		var response struct {
+			Content  string `json:"content"`
+			Encoding string `json:"encoding"`
 		}
 
-		err = client.Query(context.Background(), &query, variables)
+		path := fmt.Sprintf("repos/%s/%s/readme", url.PathEscape(owner), url.PathEscape(name))
+		if err := client.Get(path, &response); err != nil {
+			log.Println(err)
+			return commands.GetReadmeResponse{Err: err}
+		}
+
+		text, err := decodeReadmeContent(response.Content, response.Encoding)
 		if err != nil {
 			log.Println(err)
 			return commands.GetReadmeResponse{Err: err}
 		}
 
-		return commands.GetReadmeResponse{Readme: query.Repository.Object.Blob}
+		return commands.GetReadmeResponse{Readme: models.Blob{Text: text}}
 	}
+}
+
+// decodeReadmeContent decodes the content field of the REST readme
+// response. GitHub returns base64 with embedded newlines, which the
+// strict std decoder rejects, so strip them first.
+func decodeReadmeContent(content, encoding string) (string, error) {
+	if encoding != "base64" {
+		return "", fmt.Errorf("unexpected readme encoding %q", encoding)
+	}
+	raw, err := base64.StdEncoding.DecodeString(strings.ReplaceAll(content, "\n", ""))
+	if err != nil {
+		return "", err
+	}
+	return string(raw), nil
 }
 
 func StarStarrable(starrableId string) tea.Cmd {

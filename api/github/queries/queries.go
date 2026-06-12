@@ -50,13 +50,3 @@ type GetUserQuery struct {
 		}
 	} `graphql:"user(login: $login)"`
 }
-
-type GetReadmeQuery struct {
-	Repository struct {
-		Object struct {
-			Blob struct {
-				Text string
-			} `graphql:"... on Blob"`
-		} `graphql:"object(expression: $expression)"`
-	} `graphql:"repository(name: $name, owner: $owner)"`
-}
